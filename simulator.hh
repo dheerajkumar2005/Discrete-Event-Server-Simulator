@@ -38,24 +38,17 @@ struct Event {
 };
 
 //global variables;
-priority_queue<Event> event_heap;
-vector<Request> requests;          // store all requests for further statistics calculation;
-int global_request_counter = 0;
-int MAX_REQUESTS = 1000;
-int completed_requests = 0;
-double current_time = 0;
-default_random_engine generator;
+extern priority_queue<Event> event_heap;
+extern vector<Request> requests;          // store all requests for further statistics calculation;
+extern int global_request_counter;
+extern int MAX_REQUESTS;
+extern int completed_requests;
+extern double current_time;
+extern default_random_engine generator;
 
 //distribution functions;
-double gaussian_sample(double mean, double stddev) {
-    normal_distribution<double> dist(mean, stddev);
-    return max(0.0, dist(generator)); 
-}
-
-double exponential_sample(double mean) {
-    exponential_distribution<double> dist(1.0 / mean);
-    return dist(generator);
-}
+double gaussian_sample(double mean, double stddev);
+double exponential_sample(double mean);
 
 class User {
 public :
@@ -71,6 +64,7 @@ public :
 };
 
 class Server {
+public :
     int n_cores;
     int tot_threads;
     int free_threads;

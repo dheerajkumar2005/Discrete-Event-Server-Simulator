@@ -1,5 +1,13 @@
 #include "simulator.hh"
 
+priority_queue<Event> event_heap;
+vector<Request> requests;
+int global_request_counter = 0;
+int MAX_REQUESTS = 1000;
+int completed_requests = 0;
+double current_time = 0;
+default_random_engine generator;
+
 Request::Request(int r_id, int u_id, double issue) {
     req_id = r_id;
     user_id = u_id;
@@ -13,7 +21,7 @@ Request::Request(int r_id, int u_id, double issue) {
     dropped = false;
 }
 
-Event::Event(double t, int type, int req = -1, int core = -1) {
+Event::Event(double t, int type, int req, int core) {
     time = t;
     event_type = type;
     request_id = req;
@@ -21,6 +29,16 @@ Event::Event(double t, int type, int req = -1, int core = -1) {
 }
 bool Event::operator<(const Event& other) const {
     return time > other.time;
+}
+
+double gaussian_sample(double mean, double stddev) {
+    normal_distribution<double> dist(mean, stddev);
+    return max(0.0, dist(generator)); 
+}
+
+double exponential_sample(double mean) {
+    exponential_distribution<double> dist(1.0 / mean);
+    return dist(generator);
 }
 
 //user functions;
