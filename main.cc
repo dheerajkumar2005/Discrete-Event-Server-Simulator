@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 
             case REQUEST_TIMEOUT: {
                 Request &req = requests[req_id];
-                if (req.completion_time == -1 && !req.dropped) {
+                if (req.completion_time == -1) {
                     req.timed_out = true;
                     users[req.user_id].handle_timeout(req_id);
                 }

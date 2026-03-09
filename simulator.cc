@@ -51,7 +51,7 @@ User::User(int uid, double think_mean, double think_std, double t) {
 
 void User::issue_req() {
 
-    double think = gaussian_sample(think_time_mean, think_time_std);
+    double think = max(0.0,gaussian_sample(think_time_mean, think_time_std));
     double issue_time = current_time + think;
     int req_id = global_request_counter++;
     Request req(req_id, user_id, issue_time);
@@ -82,10 +82,6 @@ void User::handle_reply(int req_id) {
 void User::handle_timeout(int req_id) {
 
     Request &req = requests[req_id];
-    if (req.completion_time != -1) {
-        // if the request is already finished do nothing. We can handle this in the driver also so this check is a little redundant;
-        return;
-    }
     issue_req();
     
 }
