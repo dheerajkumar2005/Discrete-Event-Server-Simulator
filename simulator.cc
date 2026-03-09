@@ -55,7 +55,7 @@ void User::issue_req() {
     double issue_time = current_time + think;
     int req_id = global_request_counter++;
     Request req(req_id, user_id, issue_time);
-    req.timeout_time = current_time + timeout;
+    req.timeout_time = issue_time + timeout;
 
     requests.push_back(req);
     event_heap.push(Event(issue_time, REQUEST_ARRIVAL, req_id));  // push arrival event;
@@ -72,7 +72,6 @@ void User::handle_reply(int req_id) {
     }
     if (req.timed_out) {
         // if we get the reply of a timedout request, do nothing;
-        completed_requests++;
         return;
     }
     // upon recieving a valid reply issue request again;
