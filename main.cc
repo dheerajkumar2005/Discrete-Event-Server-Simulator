@@ -1,16 +1,40 @@
 #include "simulator.hh"
+#include <fstream>
 
-int main() {
+double compute_avg_response_time() {
 
-    int NUM_USERS = 10;
+    double total_response_time = 0.0;
+    int count = 0;
+
+    for (const Request &req : requests) {
+        if (!req.dropped && !req.timed_out && req.completion_time != -1) {
+            double response = req.completion_time - req.issue_time;
+            total_response_time += response;
+            count++;
+        }
+    }
+
+    if (count == 0) return 0.0;
+    return total_response_time / count;
+}
+
+int main(int argc, char *argv[]) {
+
+    if (argc >= 3) {
+        return 1;
+    }
+
+    int NUM_USERS = 1;
+    if (argc == 2) NUM_USERS = stoi(argv[1]);
+
     double THINK_TIME_MEAN = 5.0;
     double THINK_TIME_STD = 1.0;
     double TIMEOUT = 20.0;
     int NCORES = 4;
-    int TOT_THREADS = 8;
+    int TOT_THREADS = 4;
     int QUEUE_CAP = 50;
-    double SERVICE_TIME_MEAN = 3.0;
-    double TIME_SLICE = 0.5;
+    double SERVICE_TIME_MEAN = 0.5;
+    double TIME_SLICE = 100;
 
     vector<User> users;
     for (int i = 0; i < NUM_USERS; i++) {
@@ -66,9 +90,10 @@ int main() {
         }
     }
 
-    cout << "Simulation Finished\n";
-    cout << "Completed Requests: " << completed_requests << endl;
-    cout << "Total Requests Generated: " << global_request_counter << endl;
+    // cout << "Simulation Finished\n";
+    // cout << "Completed Requests: " << completed_requests << endl;
+    // cout << "Total Requests Generated: " << global_request_counter << endl;
+    cout << "Average Response Time : " << compute_avg_response_time() << endl;
 
-    return 0;
+
 }
