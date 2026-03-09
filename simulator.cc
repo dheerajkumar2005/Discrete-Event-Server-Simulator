@@ -106,11 +106,11 @@ Server::Server(int cores, int threads, int q_cap, double service_mean, double sl
 
 void Server::assign_core()  {
     // checck for a free core and assign it a thread from thread queue;
-    if (thread_queue.empty()) return;
-
+    
     for (int i=0; i < n_cores; i++) {
 
         if (core_status[i] != -1) continue;
+        if (thread_queue.empty()) return;
         int req_id = thread_queue.front();
         thread_queue.pop();
         Request &req = requests[req_id];
@@ -124,7 +124,7 @@ void Server::assign_core()  {
         }
         else {
             // push context switch event;
-            event_heap.push(Event(current_time + remaining_service_time, CONTEXT_SWITCH, req_id, i));
+            event_heap.push(Event(current_time + time_slice, CONTEXT_SWITCH, req_id, i));
         }
     }
 }
@@ -165,7 +165,7 @@ void Server::assign_thread() {
         req.thread_assigned_time = current_time;
         req.total_service_time = exponential_sample(mean_service_time);
         req.service_time_completed = 0;
-        req_queue.push(req_id);
+        thread_queue.push(req_id);
     }
 }
 
@@ -173,7 +173,7 @@ void Server::handle_context_switch(int req_id, int core_id) {
 
     Request &req = requests[req_id];
     req.service_time_completed += time_slice;
-    req_queue.push(req_id);
+    thread_queue.push(req_id);
     core_status[core_id] = -1;
     assign_core();
 
