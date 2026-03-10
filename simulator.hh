@@ -8,6 +8,20 @@ enum EventType {
     CONTEXT_SWITCH = 4
 };
 
+struct Config {
+    int num_users;
+    double think_time_mean;
+    double think_time_std;
+    double timeout;
+    int num_cores;
+    int tot_threads;
+    int queue_capacity;
+    double service_time_mean;
+    double quantum_time_slice;
+
+    Config();
+};
+
 struct Request {
     int req_id;
     int user_id;

@@ -8,6 +8,8 @@ int completed_requests = 0;
 double current_time = 0;
 default_random_engine generator;
 
+Config::Config() {}
+
 Request::Request(int r_id, int u_id, double issue) {
     req_id = r_id;
     user_id = u_id;

@@ -18,23 +18,28 @@ double compute_avg_response_time() {
     return total_response_time / count;
 }
 
-int main(int argc, char *argv[]) {
+double mean(vector<double> &v) {
+    double s = 0;
+    for (double x : v) s += x;
+    return s / v.size();
+}
 
-    if (argc >= 3) {
-        return 1;
-    }
+double stddev(vector<double> &v, double m) {
+    double s = 0;
+    for (double x : v) s += (x - m) * (x - m);
+    return sqrt(s / (v.size() - 1));
+}
 
-    int NUM_USERS = 1;
-    if (argc == 2) NUM_USERS = stoi(argv[1]);
-
-    double THINK_TIME_MEAN = 5.0;
-    double THINK_TIME_STD = 1.0;
-    double TIMEOUT = 20.0;
-    int NCORES = 4;
-    int TOT_THREADS = 4;
-    int QUEUE_CAP = 50;
-    double SERVICE_TIME_MEAN = 0.5;
-    double TIME_SLICE = 100;
+void simulate(Config &config) {
+    int NUM_USERS = config.num_users;
+    double THINK_TIME_MEAN = config.think_time_mean;
+    double THINK_TIME_STD = config.think_time_std;
+    double TIMEOUT = config.timeout;
+    int NCORES = config.num_cores;
+    int TOT_THREADS = config.tot_threads;
+    int QUEUE_CAP = config.queue_capacity;
+    double SERVICE_TIME_MEAN = config.service_time_mean;
+    double TIME_SLICE = config.quantum_time_slice;
 
     vector<User> users;
     for (int i = 0; i < NUM_USERS; i++) {
@@ -89,11 +94,65 @@ int main(int argc, char *argv[]) {
                 exit(1);
         }
     }
+} 
+
+void reset() {
+    global_request_counter = 0;
+    completed_requests = 0;
+    current_time = 0;
+    requests.clear();
+    while (!event_heap.empty()) event_heap.pop();
+    return;
+}
+
+int main() {
+
+    Config config;
+    config.think_time_mean = 5.0;
+    config.think_time_std = 0.5;
+    config.timeout = 20.0;
+    config.num_cores = 4;
+    config.tot_threads = 4;
+    config.queue_capacity = 50;
+    config.service_time_mean = 0.5;
+    config.quantum_time_slice = 100;
+
+    int RUNS = 20;   
+
+    ofstream outfile("response_time_vs_users_ci.csv");
+    outfile << "users,mean_rt,lower_ci,upper_ci\n";
+
+    for (int users = 5; users <= 100; users += 5) {
+
+        vector<double> samples;
+
+        for (int r = 0; r < RUNS; r++) {
+
+            config.num_users = users;
+
+            simulate(config);
+
+            samples.push_back(compute_avg_response_time());
+
+            reset();
+        }
+
+        double m = mean(samples);
+        double sd = stddev(samples, m);
+
+        double ci = 1.96 * sd / sqrt(RUNS);  // 95% confidence interval
+
+        double lower = m - ci;
+        double upper = m + ci;
+
+        outfile << users << "," << m << "," << lower << "," << upper << "\n";
+    }
+
+    outfile.close();
+}
 
     // cout << "Simulation Finished\n";
     // cout << "Completed Requests: " << completed_requests << endl;
     // cout << "Total Requests Generated: " << global_request_counter << endl;
-    cout << "Average Response Time : " << compute_avg_response_time() << endl;
+    // cout << "Average Response Time : " << compute_avg_response_time() << endl;
 
-
-}
