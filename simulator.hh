@@ -22,6 +22,17 @@ struct Config {
     Config();
 };
 
+struct Metrics {
+    double avg_response;
+    double throughput;
+    double goodput;
+    double badput;
+    double utilization;
+    double drop_rate;
+
+    Metrics();
+};
+
 struct Request {
     int req_id;
     int user_id;
@@ -58,6 +69,14 @@ extern int global_request_counter;
 extern int MAX_REQUESTS;
 extern int completed_requests;
 extern double current_time;
+extern int WARMUP_REQUESTS;
+extern int measured_completions;
+extern int good_completions;
+extern int bad_completions;
+extern double warmup_end_time;
+extern double total_core_busy_time;
+extern int measured_arrivals;
+extern int dropped_reqests;
 extern default_random_engine generator;
 
 //distribution functions;

@@ -7,7 +7,7 @@ double compute_avg_response_time() {
     int count = 0;
 
     for (const Request &req : requests) {
-        if (!req.dropped && !req.timed_out && req.completion_time != -1) {
+        if (!req.dropped && !req.timed_out && req.completion_time != -1 && req.completion_time > warmup_end_time) {
             double response = req.completion_time - req.issue_time;
             total_response_time += response;
             count++;
@@ -28,6 +28,20 @@ double stddev(vector<double> &v, double m) {
     double s = 0;
     for (double x : v) s += (x - m) * (x - m);
     return sqrt(s / (v.size() - 1));
+}
+
+Metrics compute_metrics(Config &config) {
+    Metrics m;
+    double measurement_time = current_time - warmup_end_time;
+
+    m.avg_response = compute_avg_response_time();
+    m.throughput = measured_completions / measurement_time;
+    m.goodput = good_completions / measurement_time;
+    m.badput = bad_completions / measurement_time;
+    m.utilization = total_core_busy_time / (config.num_cores * measurement_time);
+    m.drop_rate = (double)dropped_reqests / measured_arrivals;
+
+    return m;
 }
 
 void simulate(Config &config) {
@@ -99,53 +113,105 @@ void simulate(Config &config) {
 void reset() {
     global_request_counter = 0;
     completed_requests = 0;
+    measured_completions = 0;
+    good_completions = 0;
+    bad_completions = 0;
+    warmup_end_time = -1;
+    total_core_busy_time = 0;
+    measured_arrivals = 0;
+    dropped_reqests = 0;
     current_time = 0;
     requests.clear();
     while (!event_heap.empty()) event_heap.pop();
     return;
 }
 
+void load_config(string filename, Config &config, int &RUNS, int &user_start, int &user_end, int &user_step) {
+
+    ifstream file(filename);
+    if (!file) {
+        cerr << "Could not open config file\n";
+        exit(1);
+    }
+
+    string line;
+    while (getline(file, line)) {
+
+        line.erase(0, line.find_first_not_of(" \t"));
+        if (line.empty()) continue;
+        if (line.rfind("//", 0) == 0) continue; 
+        int pos = line.find('=');
+        if (pos == string::npos) continue;
+
+        string key = line.substr(0, pos);
+        string value = line.substr(pos + 1);
+
+        key.erase(key.find_last_not_of(" \t") + 1);
+        value.erase(0, value.find_first_not_of(" \t"));
+
+        double val = stod(value);
+
+        if (key == "think_time_mean") config.think_time_mean = val;
+        else if (key == "think_time_std") config.think_time_std = val;
+        else if (key == "timeout") config.timeout = val;
+        else if (key == "num_cores") config.num_cores = val;
+        else if (key == "tot_threads") config.tot_threads = val;
+        else if (key == "queue_capacity") config.queue_capacity = val;
+        else if (key == "service_time_mean") config.service_time_mean = val;
+        else if (key == "quantum_time_slice") config.quantum_time_slice = val;
+        else if (key == "runs") RUNS = val;
+        else if (key == "user_start") user_start = val;
+        else if (key == "user_end") user_end = val;
+        else if (key == "user_step") user_step = val;
+    }
+}
+
 int main() {
 
     Config config;
-    config.think_time_mean = 5.0;
-    config.think_time_std = 0.5;
-    config.timeout = 20.0;
-    config.num_cores = 4;
-    config.tot_threads = 4;
-    config.queue_capacity = 50;
-    config.service_time_mean = 0.5;
-    config.quantum_time_slice = 100;
+    int RUNS;
+    int user_start, user_end, user_step;
 
-    int RUNS = 20;   
+    load_config("config.txt", config, RUNS, user_start, user_end, user_step);
+    ofstream outfile("metrics.csv");
+    outfile << "users,mean_rt,lower_ci,upper_ci,throughput,goodput,badput,utilization,drop_rate\n";
 
-    ofstream outfile("response_time_vs_users_ci.csv");
-    outfile << "users,mean_rt,lower_ci,upper_ci\n";
-
-    for (int users = 5; users <= 100; users += 5) {
-
+    for (int users = user_start; users <= user_end; users += user_step) {
         vector<double> samples;
+        double throughput_sum = 0;
+        double goodput_sum = 0;
+        double badput_sum = 0;
+        double util_sum = 0;
+        double drop_sum = 0;
 
         for (int r = 0; r < RUNS; r++) {
-
             config.num_users = users;
-
             simulate(config);
 
             samples.push_back(compute_avg_response_time());
+            Metrics m = compute_metrics(config);
+            throughput_sum += m.throughput;
+            goodput_sum += m.goodput;
+            badput_sum += m.badput;
+            util_sum += m.utilization;
+            drop_sum += m.drop_rate;
 
             reset();
         }
 
         double m = mean(samples);
         double sd = stddev(samples, m);
-
         double ci = 1.96 * sd / sqrt(RUNS);  // 95% confidence interval
-
         double lower = m - ci;
         double upper = m + ci;
 
-        outfile << users << "," << m << "," << lower << "," << upper << "\n";
+        double throughput = throughput_sum / RUNS;
+        double goodput = goodput_sum / RUNS;
+        double badput = badput_sum / RUNS;
+        double util = util_sum / RUNS;
+        double drop_rate = drop_sum / RUNS;
+
+        outfile << users << "," << m << "," << lower << "," << upper << "," << throughput << "," << goodput << "," << badput << "," << util << "," << drop_rate << "\n";
     }
 
     outfile.close();

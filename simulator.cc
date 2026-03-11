@@ -3,12 +3,21 @@
 priority_queue<Event> event_heap;
 vector<Request> requests;
 int global_request_counter = 0;
-int MAX_REQUESTS = 1000;
+int MAX_REQUESTS = 15000;
 int completed_requests = 0;
 double current_time = 0;
+int WARMUP_REQUESTS = 3000;
+int measured_completions = 0;
+int good_completions = 0;
+int bad_completions = 0;
+double warmup_end_time = -1;
+double total_core_busy_time = 0;
+int measured_arrivals = 0;
+int dropped_reqests = 0;
 default_random_engine generator;
 
 Config::Config() {}
+Metrics::Metrics() {}
 
 Request::Request(int r_id, int u_id, double issue) {
     req_id = r_id;
@@ -114,6 +123,8 @@ void Server::assign_core()  {
         core_status[i] = req_id;
 
         double remaining_service_time = req.total_service_time - req.service_time_completed;
+        double run_time = min(remaining_service_time, time_slice);
+        if (completed_requests >= WARMUP_REQUESTS) total_core_busy_time += run_time;
 
         if (remaining_service_time <= time_slice) {
             // push departure event;
@@ -129,11 +140,13 @@ void Server::assign_core()  {
 void Server::handle_arrival(int req_id) {
     // Check if queue is full, if not ccheck if there is a free thread if not wait in the queue else assign the request to a thread;
     Request &req = requests[req_id];
+    if (warmup_end_time >= 0 && current_time >= warmup_end_time) measured_arrivals++;
     int k = req_queue.size();
 
     if (k >= queue_capacity) {
         //queue full, drop request;
         req.dropped = true;
+        if (warmup_end_time >= 0 && current_time >= warmup_end_time) dropped_reqests++;
         return;
     }
 
@@ -183,6 +196,14 @@ void Server::handle_departure(int req_id, int core_id) {
     core_status[core_id] = -1;
     free_threads++;
     completed_requests++;
+
+    if (completed_requests == WARMUP_REQUESTS) warmup_end_time = current_time;
+    
+    if (completed_requests > WARMUP_REQUESTS) {
+        measured_completions++;
+        if (req.timed_out) bad_completions++;
+        else good_completions++;
+    }
     assign_thread();
     assign_core();
     
