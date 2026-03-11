@@ -15,11 +15,6 @@ os.makedirs(output_dir, exist_ok=True)
 data = pd.read_csv(csv_file)
 
 users = data["users"]
-
-# -------------------------------------------------
-# 1. Average Response Time vs Users (with CI)
-# -------------------------------------------------
-
 mean_rt = data["mean_rt"]
 lower_ci = data["lower_ci"]
 upper_ci = data["upper_ci"]
@@ -42,14 +37,11 @@ plt.ylabel("Average Response Time")
 plt.title("Average Response Time vs Number of Users")
 plt.grid(True)
 plt.legend()
-
 plt.savefig(os.path.join(output_dir, "avg_response_time_vs_users.png"))
 plt.close()
 
 
-# -------------------------------------------------
-# 2. Throughput / Goodput / Badput
-# -------------------------------------------------
+
 
 throughput = data["throughput"]
 goodput = data["goodput"]
@@ -66,21 +58,14 @@ plt.ylabel("Rate (requests / unit time)")
 plt.title("Throughput / Goodput / Badput vs Users")
 plt.grid(True)
 plt.legend()
-
 plt.savefig(os.path.join(output_dir, "throughput_goodput_badput_vs_users.png"))
 plt.close()
-
-
-# -------------------------------------------------
-# 3. Average Core Utilization
-# -------------------------------------------------
 
 util = data["utilization"]
 
 plt.figure()
 
 plt.plot(users, util, marker='o')
-
 plt.xlabel("Number of Users")
 plt.ylabel("Average Core Utilization")
 plt.title("Core Utilization vs Number of Users")
@@ -90,16 +75,11 @@ plt.savefig(os.path.join(output_dir, "utilization_vs_users.png"))
 plt.close()
 
 
-# -------------------------------------------------
-# 4. Drop Rate
-# -------------------------------------------------
-
 drop_rate = data["drop_rate"]
 
 plt.figure()
 
 plt.plot(users, drop_rate, marker='o')
-
 plt.xlabel("Number of Users")
 plt.ylabel("Drop Rate")
 plt.title("Drop Rate vs Number of Users")
@@ -108,5 +88,3 @@ plt.grid(True)
 plt.savefig(os.path.join(output_dir, "drop_rate_vs_users.png"))
 plt.close()
 
-
-print("Plots saved to:", output_dir)
