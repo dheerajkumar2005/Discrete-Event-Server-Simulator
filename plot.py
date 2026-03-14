@@ -16,7 +16,6 @@ os.makedirs(output_dir, exist_ok=True)
 data = pd.read_csv(csv_file)
 
 users = data["users"]
-
 mean_rt = data["mean_rt"]
 lower_ci = data["lower_ci"]
 upper_ci = data["upper_ci"]
@@ -28,60 +27,49 @@ badput = data["badput"]
 util = data["utilization"]
 drop_rate = data["drop_rate"]
 
-if "avg_num_system" in data.columns:
-    avg_num_system = data["avg_num_system"]
-else:
-    avg_num_system = throughput * mean_rt
-
-if "avg_queue_length" in data.columns:
-    avg_queue = data["avg_queue_length"]
-else:
-    avg_queue = None
-
+avg_num_system = data["avg_num_system"]
 
 error = [mean_rt - lower_ci, upper_ci - mean_rt]
 
 
-# ---------------------------
+# -----------------------------
 # Mean Value Analysis
-# ---------------------------
+# -----------------------------
 
-Z = 5.0
-S = 0.5
-m = 4
-S_eff = S / m
+Z = 5.0          # think time
+S = 0.5          # mean service time
+m = 4            # number of servers
 
 max_users = int(users.max())
 
 R_mva = np.zeros(max_users + 1)
 X_mva = np.zeros(max_users + 1)
-N_mva = np.zeros(max_users + 1)
-
-Q_prev = 0
+Q_mva = np.zeros(max_users + 1)
 
 for n in range(1, max_users + 1):
 
-    R = S_eff * (1 + Q_prev)
+    # multi-server residence time approximation
+    R = S * (1 + Q_mva[n-1] / m)
 
-    X = n / (R + Z)
+    # throughput
+    X = n / (Z + R)
 
+    # number in system
     Q = X * R
 
     R_mva[n] = R
     X_mva[n] = X
-    N_mva[n] = Q
-
-    Q_prev = Q
+    Q_mva[n] = Q
 
 
 R_mva_plot = [R_mva[int(n)] for n in users]
 X_mva_plot = [X_mva[int(n)] for n in users]
-N_mva_plot = [N_mva[int(n)] for n in users]
+Q_mva_plot = [Q_mva[int(n)] for n in users]
 
 
-# ---------------------------
+# -----------------------------
 # Response Time plot
-# ---------------------------
+# -----------------------------
 
 plt.figure()
 
@@ -91,10 +79,10 @@ plt.errorbar(
     yerr=error,
     fmt='o-',
     capsize=5,
-    label="Simulated"
+    label="Simulation"
 )
 
-plt.plot(users, R_mva_plot, marker='s', label="MVA Prediction")
+plt.plot(users, R_mva_plot, marker='s', label="MVA")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Average Response Time")
@@ -106,14 +94,14 @@ plt.savefig(os.path.join(output_dir, "response_time_vs_users.png"))
 plt.close()
 
 
-# ---------------------------
+# -----------------------------
 # Throughput plot
-# ---------------------------
+# -----------------------------
 
 plt.figure()
 
-plt.plot(users, throughput, marker='o', label="Simulated")
-plt.plot(users, X_mva_plot, marker='s', label="MVA Prediction")
+plt.plot(users, throughput, marker='o', label="Simulation")
+plt.plot(users, X_mva_plot, marker='s', label="MVA")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Throughput")
@@ -125,14 +113,14 @@ plt.savefig(os.path.join(output_dir, "throughput_vs_users.png"))
 plt.close()
 
 
-# ---------------------------
-# Avg number in system
-# ---------------------------
+# -----------------------------
+# Number in System
+# -----------------------------
 
 plt.figure()
 
-plt.plot(users, avg_num_system, marker='o', label="Simulated")
-plt.plot(users, N_mva_plot, marker='s', label="MVA Prediction")
+plt.plot(users, avg_num_system, marker='o', label="Simulation")
+plt.plot(users, Q_mva_plot, marker='s', label="MVA")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Average Number in System")
@@ -144,9 +132,9 @@ plt.savefig(os.path.join(output_dir, "number_in_system_vs_users.png"))
 plt.close()
 
 
-# ---------------------------
+# -----------------------------
 # Throughput / Goodput / Badput
-# ---------------------------
+# -----------------------------
 
 plt.figure()
 
@@ -155,7 +143,7 @@ plt.plot(users, goodput, marker='s', label="Goodput")
 plt.plot(users, badput, marker='^', label="Badput")
 
 plt.xlabel("Number of Users")
-plt.ylabel("Rate (requests / unit time)")
+plt.ylabel("Rate")
 plt.title("Throughput / Goodput / Badput vs Users")
 plt.grid(True)
 plt.legend()
@@ -164,26 +152,26 @@ plt.savefig(os.path.join(output_dir, "throughput_goodput_badput_vs_users.png"))
 plt.close()
 
 
-# ---------------------------
+# -----------------------------
 # Utilization
-# ---------------------------
+# -----------------------------
 
 plt.figure()
 
 plt.plot(users, util, marker='o')
 
 plt.xlabel("Number of Users")
-plt.ylabel("Average Core Utilization")
-plt.title("Core Utilization vs Users")
+plt.ylabel("Core Utilization")
+plt.title("Utilization vs Users")
 plt.grid(True)
 
 plt.savefig(os.path.join(output_dir, "utilization_vs_users.png"))
 plt.close()
 
 
-# ---------------------------
+# -----------------------------
 # Drop Rate
-# ---------------------------
+# -----------------------------
 
 plt.figure()
 
@@ -196,22 +184,3 @@ plt.grid(True)
 
 plt.savefig(os.path.join(output_dir, "drop_rate_vs_users.png"))
 plt.close()
-
-
-# ---------------------------
-# Queue Length
-# ---------------------------
-
-if avg_queue is not None:
-
-    plt.figure()
-
-    plt.plot(users, avg_queue, marker='o')
-
-    plt.xlabel("Number of Users")
-    plt.ylabel("Average Queue Length")
-    plt.title("Queue Length vs Users")
-    plt.grid(True)
-
-    plt.savefig(os.path.join(output_dir, "queue_length_vs_users.png"))
-    plt.close()
