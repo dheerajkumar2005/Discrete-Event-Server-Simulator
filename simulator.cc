@@ -14,7 +14,19 @@ double warmup_end_time = -1;
 double total_core_busy_time = 0;
 int measured_arrivals = 0;
 int dropped_reqests = 0;
+double last_event_time = 0;
+double area_num_system = 0;
+double area_queue_length = 0;
 default_random_engine generator;
+
+int num_in_system(Server &server) {
+    int running = 0;
+
+    for (int x : server.core_status)
+        if (x != -1) running++;
+
+    return server.req_queue.size() + server.thread_queue.size() + running;
+}
 
 Config::Config() {}
 Metrics::Metrics() {}
@@ -43,6 +55,7 @@ bool Event::operator<(const Event& other) const {
 }
 
 double gaussian_sample(double mean, double stddev) {
+    if (stddev = 0) return mean;
     normal_distribution<double> dist(mean, stddev);
     return max(0.0, dist(generator)); 
 }

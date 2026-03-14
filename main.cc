@@ -40,6 +40,8 @@ Metrics compute_metrics(Config &config) {
     m.badput = bad_completions / measurement_time;
     m.utilization = total_core_busy_time / (config.num_cores * measurement_time);
     m.drop_rate = (double)dropped_reqests / measured_arrivals;
+    m.avg_num_system = area_num_system / measurement_time;
+    m.avg_queue_length = area_queue_length / measurement_time;
 
     return m;
 }
@@ -76,6 +78,17 @@ void simulate(Config &config) {
 
         current_time = ev.time;
         int req_id = ev.request_id;
+        double dt = current_time - last_event_time;
+
+        if (warmup_end_time >= 0) {
+            int nsys = num_in_system(server);
+            int qlen = server.req_queue.size();
+
+            area_num_system += nsys * dt;
+            area_queue_length += qlen * dt;
+        }
+
+        last_event_time = current_time;
 
         switch (ev.event_type) {
 
@@ -121,6 +134,9 @@ void reset() {
     measured_arrivals = 0;
     dropped_reqests = 0;
     current_time = 0;
+    area_num_system = 0;
+    area_queue_length = 0;
+    last_event_time = 0;
     requests.clear();
     while (!event_heap.empty()) event_heap.pop();
     return;
@@ -174,7 +190,7 @@ int main() {
 
     load_config("config.txt", config, RUNS, user_start, user_end, user_step);
     ofstream outfile("metrics.csv");
-    outfile << "users,mean_rt,lower_ci,upper_ci,throughput,goodput,badput,utilization,drop_rate\n";
+    outfile << "users,mean_rt,lower_ci,upper_ci,throughput,goodput,badput,utilization,drop_rate,avg_num_system,avg_queue_length\n";
 
     for (int users = user_start; users <= user_end; users += user_step) {
         vector<double> samples;
@@ -183,6 +199,8 @@ int main() {
         double badput_sum = 0;
         double util_sum = 0;
         double drop_sum = 0;
+        double nsys_sum = 0;
+        double qlen_sum = 0;
 
         for (int r = 0; r < RUNS; r++) {
             config.num_users = users;
@@ -195,6 +213,8 @@ int main() {
             badput_sum += m.badput;
             util_sum += m.utilization;
             drop_sum += m.drop_rate;
+            nsys_sum += m.avg_num_system;
+            qlen_sum += m.avg_queue_length;
 
             reset();
         }
@@ -210,8 +230,10 @@ int main() {
         double badput = badput_sum / RUNS;
         double util = util_sum / RUNS;
         double drop_rate = drop_sum / RUNS;
+        double avg_nsys = nsys_sum / RUNS;
+        double avg_qlen = qlen_sum / RUNS;
 
-        outfile << users << "," << m << "," << lower << "," << upper << "," << throughput << "," << goodput << "," << badput << "," << util << "," << drop_rate << "\n";
+        outfile << users << "," << m << "," << lower << "," << upper << "," << throughput << "," << goodput << "," << badput << "," << util << "," << drop_rate << "," << avg_nsys << "," << avg_qlen << "\n";
     }
 
     outfile.close();
