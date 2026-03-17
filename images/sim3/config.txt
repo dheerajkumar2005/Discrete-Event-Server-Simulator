@@ -1,19 +1,21 @@
-// DONT CHANGE VARIABLE NAMES
+// DO NOT CHANGE VARIABLE NAMES
 // simulation configuration
 
 think_time_mean = 5.0
 think_time_std = 0.5
-timeout = 4.0
+timeout = 180
 
 num_cores = 4
 tot_threads = 4
-queue_capacity = 50
+queue_capacity = 100
 
-service_time_mean = 0.5
-quantum_time_slice = 1000
+service_time_mean = 1
+quantum_time_slice = 100000
+
+routing_probability = 0.5
 
 // experiment settings
-runs = 20
+runs = 10
 user_start = 5
 user_end = 200
 user_step = 5

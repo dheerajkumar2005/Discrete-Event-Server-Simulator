@@ -18,6 +18,7 @@ struct Config {
     int queue_capacity;
     double service_time_mean;
     double quantum_time_slice;
+    double routing_prob;
     
     Config();
 };
@@ -27,10 +28,12 @@ struct Metrics {
     double throughput;
     double goodput;
     double badput;
-    double utilization;
+    double util1;
+    double util2;
     double drop_rate;
     double avg_num_system;
-    double avg_queue_length;
+    double avg_queue1_length;
+    double avg_queue2_length;
     
     Metrics();
 };
@@ -40,6 +43,7 @@ struct Request {
     int user_id;
     bool timed_out;
     bool dropped;
+    int current_server;
     
     // timestamps
     double issue_time;
@@ -51,7 +55,7 @@ struct Request {
     double service_time_completed;
     double timeout_time;
     
-    Request(int r_id, int u_id, double issue);
+    Request(int r_id, int u_id, double issue, int cur_ser = 0);
 };
 
 struct Event {
@@ -77,12 +81,14 @@ extern int measured_completions;
 extern int good_completions;
 extern int bad_completions;
 extern double warmup_end_time;
-extern double total_core_busy_time;
+extern double total_core_busy_time_s1;
+extern double total_core_busy_time_s2;
 extern int measured_arrivals;
 extern int dropped_reqests;
 extern double last_event_time;
 extern double area_num_system;
-extern double area_queue_length;
+extern double area_queue1_length;
+extern double area_queue2_length;
 extern default_random_engine generator;
 
 //distribution functions;

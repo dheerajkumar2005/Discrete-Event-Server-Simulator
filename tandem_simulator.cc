@@ -1,4 +1,4 @@
-#include "simulator.hh"
+#include "tandem_simulator.hh"
 
 priority_queue<Event> event_heap;
 vector<Request> requests;
@@ -11,12 +11,14 @@ int measured_completions = 0;
 int good_completions = 0;
 int bad_completions = 0;
 double warmup_end_time = -1;
-double total_core_busy_time = 0;
+double total_core_busy_time_s1 = 0;
+double total_core_busy_time_s2 = 0;
 int measured_arrivals = 0;
 int dropped_reqests = 0;
 double last_event_time = 0;
 double area_num_system = 0;
-double area_queue_length = 0;
+double area_queue1_length = 0;
+double area_queue2_length = 0;
 default_random_engine generator;
 
 int num_in_system(Server &server) {
@@ -31,7 +33,7 @@ int num_in_system(Server &server) {
 Config::Config() {}
 Metrics::Metrics() {}
 
-Request::Request(int r_id, int u_id, double issue) {
+Request::Request(int r_id, int u_id, double issue, int cur_ser) {
     req_id = r_id;
     user_id = u_id;
     issue_time = issue;
@@ -42,6 +44,7 @@ Request::Request(int r_id, int u_id, double issue) {
     timeout_time = 0;
     timed_out = false;
     dropped = false;
+    current_server = cur_ser;
 }
 
 Event::Event(double t, int type, int req, int core, int ser) {
@@ -138,15 +141,20 @@ void Server::assign_core()  {
 
         double remaining_service_time = req.total_service_time - req.service_time_completed;
         double run_time = min(remaining_service_time, time_slice);
-        if (completed_requests >= WARMUP_REQUESTS) total_core_busy_time += run_time;
+        if (completed_requests >= WARMUP_REQUESTS) {
+            if (req.current_server == 0)
+                total_core_busy_time_s1 += run_time;
+            else
+                total_core_busy_time_s2 += run_time;
+        }
 
         if (remaining_service_time <= time_slice) {
             // push departure event;
-            event_heap.push(Event(current_time + remaining_service_time, REQUEST_DEPARTURE, req_id, i));
+            event_heap.push(Event(current_time + remaining_service_time, REQUEST_DEPARTURE, req_id, i, requests[req_id].current_server));
         }
         else {
             // push context switch event;
-            event_heap.push(Event(current_time + time_slice, CONTEXT_SWITCH, req_id, i));
+            event_heap.push(Event(current_time + time_slice, CONTEXT_SWITCH, req_id, i, requests[req_id].current_server));
         }
     }
 }
@@ -187,8 +195,10 @@ void Server::assign_thread() {
         Request &req = requests[req_id];
         free_threads--;
         req.thread_assigned_time = current_time;
-        req.total_service_time = exponential_sample(mean_service_time);
-        req.service_time_completed = 0;
+        if (req.total_service_time == 0) {
+            req.total_service_time = exponential_sample(mean_service_time);
+            req.service_time_completed = 0;
+        }
         thread_queue.push(req_id);
     }
 }
@@ -204,21 +214,8 @@ void Server::handle_context_switch(int req_id, int core_id) {
 }
 
 void Server::handle_departure(int req_id, int core_id) {
-
-    Request &req = requests[req_id];
-    req.completion_time = current_time;
     core_status[core_id] = -1;
     free_threads++;
-    completed_requests++;
-
-    if (completed_requests == WARMUP_REQUESTS) warmup_end_time = current_time;
-    
-    if (completed_requests > WARMUP_REQUESTS) {
-        measured_completions++;
-        if (req.timed_out) bad_completions++;
-        else good_completions++;
-    }
-    assign_thread();
-    assign_core();
-    
+    assign_thread();   // fill freed thread
+    assign_core();     // schedule next execution
 }
