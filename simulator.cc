@@ -13,7 +13,7 @@ int bad_completions = 0;
 double warmup_end_time = -1;
 double total_core_busy_time = 0;
 int measured_arrivals = 0;
-int dropped_reqests = 0;
+int dropped_requests = 0;
 double last_event_time = 0;
 double area_num_system = 0;
 double area_queue_length = 0;
@@ -80,7 +80,7 @@ void User::issue_req() {
     double issue_time = current_time + think;
     int req_id = global_request_counter++;
     Request req(req_id, user_id, issue_time);
-    req.timeout_time = issue_time + timeout;
+    req.timeout_time = issue_time + timeout + exponential_sample(1.0);
 
     requests.push_back(req);
     event_heap.push(Event(issue_time, REQUEST_ARRIVAL, req_id));  // push arrival event;
@@ -160,7 +160,7 @@ void Server::handle_arrival(int req_id) {
     if (k >= queue_capacity) {
         //queue full, drop request;
         req.dropped = true;
-        if (warmup_end_time >= 0 && current_time >= warmup_end_time) dropped_reqests++;
+        if (warmup_end_time >= 0 && current_time >= warmup_end_time) dropped_requests++;
         return;
     }
 

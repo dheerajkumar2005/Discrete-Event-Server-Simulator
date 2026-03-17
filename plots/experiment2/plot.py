@@ -38,33 +38,35 @@ error = [mean_rt - lower_ci, upper_ci - mean_rt]
 
 Z = 5.0          # think time
 S = 0.5          # mean service time
-m = 4            # number of servers
+m = 8          # number of servers
 
 max_users = int(users.max())
 
 R_mva = np.zeros(max_users + 1)
 X_mva = np.zeros(max_users + 1)
-Q_mva = np.zeros(max_users + 1)
+N_mva = np.zeros(max_users + 1)
 
 for n in range(1, max_users + 1):
 
-    # multi-server residence time approximation
-    R = S * (1 + Q_mva[n-1] / m)
+    Q = N_mva[n-1]
 
-    # throughput
+    # Correct multi-server approximation
+    if Q < m:
+        R = S
+    else:
+        R = S * (1 + (Q - m) / m)
+
     X = n / (Z + R)
-
-    # number in system
-    Q = X * R
+    N = X * R
 
     R_mva[n] = R
     X_mva[n] = X
-    Q_mva[n] = Q
+    N_mva[n] = N
 
 
 R_mva_plot = [R_mva[int(n)] for n in users]
 X_mva_plot = [X_mva[int(n)] for n in users]
-Q_mva_plot = [Q_mva[int(n)] for n in users]
+Q_mva_plot = [N_mva[int(n)] for n in users]
 
 
 # -----------------------------
@@ -73,16 +75,26 @@ Q_mva_plot = [Q_mva[int(n)] for n in users]
 
 plt.figure()
 
+# Simulation with smaller markers + thinner line
 plt.errorbar(
     users,
     mean_rt,
     yerr=error,
-    fmt='o-',
-    capsize=5,
-    label="Simulation"
+    fmt='o-',           # line + marker
+    markersize=1,       # 🔥 reduced bead size
+    linewidth=1,
+    capsize=2,
+    label="Simulation (mean ± CI)"
 )
 
-plt.plot(users, R_mva_plot, marker='s', label="MVA")
+# MVA curve (make it visually distinct)
+plt.plot(
+    users,
+    R_mva_plot,
+    linestyle='--',
+    linewidth=2,
+    label="MVA Prediction"
+)
 
 plt.xlabel("Number of Users")
 plt.ylabel("Average Response Time")
@@ -92,7 +104,6 @@ plt.legend()
 
 plt.savefig(os.path.join(output_dir, "response_time_vs_users.png"))
 plt.close()
-
 
 # -----------------------------
 # Throughput plot

@@ -79,7 +79,7 @@ extern int bad_completions;
 extern double warmup_end_time;
 extern double total_core_busy_time;
 extern int measured_arrivals;
-extern int dropped_reqests;
+extern int dropped_requests;
 extern double last_event_time;
 extern double area_num_system;
 extern double area_queue_length;

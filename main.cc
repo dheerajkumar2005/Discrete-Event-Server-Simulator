@@ -39,7 +39,7 @@ Metrics compute_metrics(Config &config) {
     m.goodput = good_completions / measurement_time;
     m.badput = bad_completions / measurement_time;
     m.utilization = total_core_busy_time / (config.num_cores * measurement_time);
-    m.drop_rate = (double)dropped_reqests / measured_arrivals;
+    m.drop_rate = (double)dropped_requests / measured_arrivals;
     m.avg_num_system = area_num_system / measurement_time;
     m.avg_queue_length = area_queue_length / measurement_time;
 
@@ -132,7 +132,7 @@ void reset() {
     warmup_end_time = -1;
     total_core_busy_time = 0;
     measured_arrivals = 0;
-    dropped_reqests = 0;
+    dropped_requests = 0;
     current_time = 0;
     area_num_system = 0;
     area_queue_length = 0;
@@ -221,7 +221,7 @@ int main() {
 
         double m = mean(samples);
         double sd = stddev(samples, m);
-        double ci = 1.96 * sd / sqrt(RUNS);  // 95% confidence interval
+        double ci = 4.417 * sd / sqrt(RUNS);  // 99.999% confidence interval
         double lower = m - ci;
         double upper = m + ci;
 
