@@ -8,18 +8,52 @@ enum EventType {
     CONTEXT_SWITCH = 4
 };
 
+// --- Distribution types ---
+
+struct Normal {
+    double mean, stddev;
+};
+
+struct Constant{
+    double value;
+};
+
+struct Uniform {
+    double low, high;
+};
+
+struct Exponential {
+    double lambda;
+};
+
+// --- The unified Distribution type ---
+
+using Distribution = std::variant<Normal, Uniform, Constant, Exponential>;
+
+class Sampler{
+    std::mt19937 rng;
+    public:
+        Sampler();
+        double sample(const Distribution& dist);
+        std::string name(const Distribution& dist);
+};
+
 struct Config {
-    int num_users;
-    double think_time_mean;
-    double think_time_std;
-    double timeout;
+    Distribution think_time;
+    Distribution timeout;
+    Distribution service_time;
     int num_cores;
     int tot_threads;
     int queue_capacity;
-    double service_time_mean;
     double quantum_time_slice;
+    double context_switch_overhead;
+    int min_users;
+    int max_users;
+    int user_step_size;
+    int runs; // no of runs per user level
     
     Config();
+    void load_config(const string& filename, Config& config);
 };
 
 struct Metrics {
@@ -28,9 +62,10 @@ struct Metrics {
     double goodput;
     double badput;
     double utilization;
-    double drop_rate;
+    double avg_drop_rate;
     double avg_num_system;
     double avg_queue_length;
+    int avg_context_switches;
     
     Metrics();
 };
@@ -42,16 +77,17 @@ struct Request {
     bool dropped;
     
     // timestamps
-    double issue_time;
-    double thread_assigned_time;
-    double completion_time;
+    double issue_time; // time at which request leaves user
+    double thread_assigned_time; // time at which a thread acquires it
+    double completion_time; // time at which request leaves the server
     
     // service parameters
     double total_service_time;
     double service_time_completed;
-    double timeout_time;
+    double timeout_time; // time at which timeout should happen
+    int context_switches;
     
-    Request(int r_id, int u_id, double issue);
+    Request(int r_id, int u_id, double issue_time);
 };
 
 struct Event {
@@ -92,30 +128,29 @@ double exponential_sample(double mean);
 class User {
     public :
     int user_id;
-    double think_time_mean;
-    double think_time_std;
-    double timeout;
+    Distribution think_time;
+    Distribution timeout;
     
-    User(int uid, double think_mean, double think_std, double t);
+    User(int uid, Distribution think_time, Distribution timout);
     void issue_req();
     void handle_reply(int req_id) ;
     void handle_timeout(int req_id);
 };
 
 class Server {
-    public :
+    public:
     int n_cores;
     int tot_threads;
     int free_threads;
     int queue_capacity;
-    double mean_service_time;
+    Distribution service_time;
     double time_slice;
     
     queue<int> req_queue;
     queue<int> thread_queue;
     vector<int> core_status;
     
-    Server(int cores, int threads, int q_cap, double service_mean, double slice);
+    Server(int cores, int threads, int q_cap, Distribution service_time, double slice);
     void assign_core();                                         // assigns cores to the threads in the front of the thread queue;
     void handle_arrival(int req_id);                            
     void assign_thread();                                      // assigns a thread to the request in the front of the quue and pushes it to the therad queue;
