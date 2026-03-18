@@ -7,7 +7,7 @@ timeout = 100000
 
 num_cores = 8
 tot_threads = 8
-queue_capacity = 1000000
+queue_capacity = 50
 
 service_time_mean = 0.5
 quantum_time_slice = 100000000

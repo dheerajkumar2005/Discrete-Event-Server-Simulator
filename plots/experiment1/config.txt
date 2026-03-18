@@ -7,7 +7,7 @@ timeout = 10000000000
 
 num_cores = 1
 tot_threads = 1
-queue_capacity = 100
+queue_capacity = 100000000
 
 service_time_mean = 0.05
 quantum_time_slice = 100000000
@@ -16,4 +16,4 @@ quantum_time_slice = 100000000
 runs = 50
 user_start = 20
 user_end = 200
-user_step = 5
+user_step = 10

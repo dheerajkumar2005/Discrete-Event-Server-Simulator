@@ -38,7 +38,7 @@ error = [mean_rt - lower_ci, upper_ci - mean_rt]
 
 Z = 5.0          # think time
 S = 0.05          # mean service time
-m = 1            # number of servers
+m = 1          # number of servers
 
 max_users = int(users.max())
 
@@ -109,8 +109,8 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, throughput, label="Simulation")
-plt.plot(users, X_mva_plot, label="MVA")
+plt.plot(users, throughput, marker='o', label="Simulation")
+plt.plot(users, X_mva_plot, marker='s', label="MVA")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Throughput")
@@ -128,8 +128,8 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, avg_num_system, label="Simulation")
-plt.plot(users, Q_mva_plot, label="MVA")
+plt.plot(users, avg_num_system, marker='o', label="Simulation")
+plt.plot(users, Q_mva_plot, marker='s', label="MVA")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Average Number in System")
@@ -147,9 +147,9 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, throughput, label="Throughput")
-plt.plot(users, goodput, label="Goodput")
-plt.plot(users, badput, label="Badput")
+plt.plot(users, throughput, marker='o', label="Throughput")
+plt.plot(users, goodput, marker='s', label="Goodput")
+plt.plot(users, badput, marker='^', label="Badput")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Rate")
@@ -192,22 +192,4 @@ plt.title("Drop Rate vs Users")
 plt.grid(True)
 
 plt.savefig(os.path.join(output_dir, "drop_rate_vs_users.png"))
-plt.close()
-
-# -----------------------------
-# Average Queue Length
-# -----------------------------
-
-avg_qlen = data["avg_queue_length"]
-
-plt.figure()
-
-plt.plot(users, avg_qlen, marker='o')
-
-plt.xlabel("Number of Users")
-plt.ylabel("Average Queue Length")
-plt.title("Average Queue Length vs Users")
-plt.grid(True)
-
-plt.savefig(os.path.join(output_dir, "avg_queue_length_vs_users.png"))
 plt.close()
