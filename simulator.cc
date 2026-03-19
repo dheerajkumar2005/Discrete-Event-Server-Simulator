@@ -82,8 +82,22 @@ Distribution parse_distribution(const string& value) {
     }
 }
 
+Config::Config(){
+    think_time = Normal{5,0.5};
+    timeout = Normal{5,0.5};
+    service_time = Exponential{0.05};
+    num_cores = 1;
+    tot_threads = 1;
+    queue_capacity = 100000;
+    quantum_time_slice = 100000;
+    context_switch_overhead = 0;
+    min_users = 20;
+    max_users = 200;
+    user_step_size = 10;
+    runs = 30;
+}
 
-void Config::load_config(const string& filename, Config& config) {
+void Config::load_config(const string& filename) {
     ifstream file(filename);
     if (!file) {
         cerr << "Could not open config file\n";
@@ -105,18 +119,18 @@ void Config::load_config(const string& filename, Config& config) {
         key.erase(key.find_last_not_of(" \t") + 1);
         value.erase(0, value.find_first_not_of(" \t"));
 
-        if      (key == "think_time")             config.think_time   = parse_distribution(value);
-        else if (key == "timeout")                config.timeout      = parse_distribution(value);
-        else if (key == "service_time")           config.service_time = parse_distribution(value);
-        else if (key == "num_cores")              config.num_cores              = stoi(value);
-        else if (key == "tot_threads")            config.tot_threads            = stoi(value);
-        else if (key == "queue_capacity")         config.queue_capacity         = stoi(value);
-        else if (key == "quantum_time_slice")     config.quantum_time_slice     = stod(value);
-        else if (key == "context_switch_overhead")config.context_switch_overhead= stod(value);
-        else if (key == "min_users")              config.min_users              = stoi(value);
-        else if (key == "max_users")              config.max_users              = stoi(value);
-        else if (key == "user_step_size")         config.user_step_size         = stoi(value);
-        else if (key == "runs")                   config.runs                   = stoi(value);
+        if      (key == "think_time")             this->think_time   = parse_distribution(value);
+        else if (key == "timeout")                this->timeout      = parse_distribution(value);
+        else if (key == "service_time")           this->service_time = parse_distribution(value);
+        else if (key == "num_cores")              this->num_cores              = stoi(value);
+        else if (key == "tot_threads")            this->tot_threads            = stoi(value);
+        else if (key == "queue_capacity")         this->queue_capacity         = stoi(value);
+        else if (key == "quantum_time_slice")     this->quantum_time_slice     = stod(value);
+        else if (key == "context_switch_overhead")this->context_switch_overhead= stod(value);
+        else if (key == "min_users")              this->min_users              = stoi(value);
+        else if (key == "max_users")              this->max_users              = stoi(value);
+        else if (key == "user_step_size")         this->user_step_size         = stoi(value);
+        else if (key == "runs")                   this->runs                   = stoi(value);
     }
 }
 
@@ -130,8 +144,6 @@ int num_in_system(Server &server) {
 
     return server.req_queue.size() + server.thread_queue.size() + running;
 }
-
-Metrics::Metrics() {}
 
 Request::Request(int r_id, int u_id, double issue_time) {
     req_id = r_id;
@@ -158,16 +170,6 @@ bool Event::operator<(const Event& other) const {
     return time > other.time;
 }
 
-// double gaussian_sample(double mean, double stddev) {
-//     if (stddev == 0) return mean;
-//     normal_distribution<double> dist(mean, stddev);
-//     return max(0.0, dist(generator)); 
-// }
-
-// double exponential_sample(double mean) {
-//     exponential_distribution<double> dist(1.0 / mean);
-//     return dist(generator);
-// }
 
 //user functions;
 User::User(int uid, Distribution think_time, Distribution timeout) {
@@ -211,7 +213,7 @@ void User::handle_timeout(int req_id) {
 }
 
 //server functions;
-Server::Server(int cores, int threads, int q_cap, Distribution service_time, double slice) {
+Server::Server(int cores, int threads, int q_cap, Distribution service_time, double slice, double overhead) {
 
     n_cores = cores;
     tot_threads = threads;
@@ -220,6 +222,7 @@ Server::Server(int cores, int threads, int q_cap, Distribution service_time, dou
     this->service_time = service_time;
     time_slice = slice;
     core_status.resize(cores, -1);
+    context_switch_overhead = overhead;
 
 }
 
@@ -245,7 +248,7 @@ void Server::assign_core()  {
         }
         else {
             // push context switch event;
-            event_heap.push(Event(current_time + time_slice, CONTEXT_SWITCH, req_id, i));
+            event_heap.push(Event(current_time + time_slice + context_switch_overhead, CONTEXT_SWITCH, req_id, i));
         }
     }
 }
@@ -296,6 +299,7 @@ void Server::handle_context_switch(int req_id, int core_id) {
 
     Request &req = requests[req_id];
     req.service_time_completed += time_slice;
+    req.context_switches++;
     thread_queue.push(req_id);
     core_status[core_id] = -1;
     assign_core();
@@ -320,4 +324,165 @@ void Server::handle_departure(int req_id, int core_id) {
     assign_thread();
     assign_core();
     
+}
+
+Metrics::Metrics() {}
+
+double Metrics::compute_avg_response_time() {
+
+    double total_response_time = 0.0;
+    int count = 0;
+
+    for (const Request &req : requests) {
+        if (!req.dropped && !req.timed_out && req.completion_time != -1 && req.completion_time > warmup_end_time) {
+            double response = req.completion_time - req.issue_time;
+            total_response_time += response;
+            count++;
+        }
+    }
+
+    if (count == 0) return 0.0;
+    return total_response_time / count;
+}
+
+double Metrics::compute_avg_context_switches() {
+    int total_context_switches = 0;
+    int count = 0;
+    for (const Request &req : requests) {
+        if (!req.dropped && !req.timed_out && req.completion_time != -1 && req.completion_time > warmup_end_time) {
+            total_context_switches += req.context_switches;
+            count++;
+        }
+    }
+    if(count == 0) return 0.0;
+    return double(total_context_switches)/double(count);
+}
+
+
+double mean(vector<double> &v) {
+    double s = 0;
+    for (double x : v) s += x;
+    return s / v.size();
+}
+
+double stddev(vector<double> &v, double m) {
+    double s = 0;
+    for (double x : v) s += (x - m) * (x - m);
+    return sqrt(s / (v.size() - 1));
+}
+
+
+Metrics compute_metrics(Config &config) {
+    Metrics m;
+    double measurement_time = current_time - warmup_end_time;
+
+    m.avg_response = m.compute_avg_response_time();
+    m.throughput = measured_completions / measurement_time;
+    m.goodput = good_completions / measurement_time;
+    m.badput = bad_completions / measurement_time;
+    m.utilization = total_core_busy_time / (config.num_cores * measurement_time);
+    m.avg_drop_rate = (double)dropped_requests / measured_arrivals;
+    m.avg_num_system = area_num_system / measurement_time;
+    m.avg_queue_length = area_queue_length / measurement_time;
+    m.avg_context_switches = m.compute_avg_context_switches();
+
+    return m;
+}
+
+
+
+void simulate(Config &config, int num_users) {
+    int NUM_USERS = num_users;
+    Distribution THINK_TIME = config.think_time;
+    Distribution TIMEOUT = config.timeout;
+    int NCORES = config.num_cores;
+    int TOT_THREADS = config.tot_threads;
+    int QUEUE_CAP = config.queue_capacity;
+    Distribution SERVICE_TIME = config.service_time;
+    double TIME_SLICE = config.quantum_time_slice;
+    double OVERHEAD = config.context_switch_overhead;
+    vector<User> users;
+    for (int i = 0; i < NUM_USERS; i++) {
+        User u = User(i,THINK_TIME, TIMEOUT);
+        users.push_back(u); 
+    }
+
+    Server server(NCORES, TOT_THREADS, QUEUE_CAP, SERVICE_TIME, TIME_SLICE, OVERHEAD);
+
+    //send initial requests;
+    for (auto &u : users) {
+        u.issue_req();
+    }
+
+    //main simulation loop;
+    while (!event_heap.empty() && completed_requests < MAX_REQUESTS) {   //decide a better stopping criterion;
+
+        Event ev = event_heap.top();
+        event_heap.pop();
+
+        current_time = ev.time;
+        int req_id = ev.request_id;
+        double dt = current_time - last_event_time;
+
+        if (warmup_end_time >= 0) {
+            int nsys = num_in_system(server);
+            int qlen = server.req_queue.size();
+
+            area_num_system += nsys * dt;
+            area_queue_length += qlen * dt;
+        }
+
+        last_event_time = current_time;
+
+        switch (ev.event_type) {
+
+            case REQUEST_ARRIVAL:
+                server.handle_arrival(req_id);
+                break;
+
+            case REQUEST_DEPARTURE: {
+                server.handle_departure(req_id, ev.core_id);
+                Request &req = requests[req_id];
+                users[req.user_id].handle_reply(req_id);
+                break;
+            }
+
+            case REQUEST_TIMEOUT: {
+                Request &req = requests[req_id];
+                if (req.completion_time == -1) {
+                    req.timed_out = true;
+                    users[req.user_id].handle_timeout(req_id);
+                }
+                break;
+            }
+
+            case CONTEXT_SWITCH:
+                server.handle_context_switch(req_id, ev.core_id);
+                break;
+
+            default:
+                cerr << "Unknown event type\n";
+                exit(1);
+        }
+    }
+}
+
+
+void reset() {
+    global_request_counter = 0;
+    completed_requests = 0;
+    measured_completions = 0;
+    good_completions = 0;
+    bad_completions = 0;
+    warmup_end_time = -1;
+    total_core_busy_time = 0;
+    measured_arrivals = 0;
+    dropped_requests = 0;
+    current_time = 0;
+    area_num_system = 0;
+    area_queue_length = 0;
+    last_event_time = 0;
+    requests.clear();
+    while (!event_heap.empty()) event_heap.pop();
+    return;
 }

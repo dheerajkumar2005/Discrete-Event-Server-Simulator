@@ -53,7 +53,7 @@ struct Config {
     int runs; // no of runs per user level
     
     Config();
-    void load_config(const string& filename, Config& config);
+    void load_config(const string& filename);
 };
 
 struct Metrics {
@@ -65,9 +65,11 @@ struct Metrics {
     double avg_drop_rate;
     double avg_num_system;
     double avg_queue_length;
-    int avg_context_switches;
+    double avg_context_switches;
     
     Metrics();
+    double compute_avg_response_time();
+    double compute_avg_context_switches();
 };
 
 struct Request {
@@ -119,11 +121,7 @@ extern int dropped_requests;
 extern double last_event_time;
 extern double area_num_system;
 extern double area_queue_length;
-extern default_random_engine generator;
-
-//distribution functions;
-double gaussian_sample(double mean, double stddev);
-double exponential_sample(double mean);
+extern Sampler s;
 
 class User {
     public :
@@ -145,12 +143,12 @@ class Server {
     int queue_capacity;
     Distribution service_time;
     double time_slice;
-    
+    double context_switch_overhead;
     queue<int> req_queue;
     queue<int> thread_queue;
     vector<int> core_status;
     
-    Server(int cores, int threads, int q_cap, Distribution service_time, double slice);
+    Server(int cores, int threads, int q_cap, Distribution service_time, double slice, double overhead);
     void assign_core();                                         // assigns cores to the threads in the front of the thread queue;
     void handle_arrival(int req_id);                            
     void assign_thread();                                      // assigns a thread to the request in the front of the quue and pushes it to the therad queue;
@@ -159,3 +157,8 @@ class Server {
 };
 
 int num_in_system(Server &server);
+Metrics compute_metrics(Config &config);
+void simulate(Config &config, int num_users);
+void reset();
+double mean(vector<double> &v);
+double stddev(vector<double> &v, double m);
