@@ -1,0 +1,27 @@
+// Workload
+think_time_mean = 
+think_time_std = 
+timeout = 
+
+// Server 1
+num_cores_s1 = 
+tot_threads_s1 = 
+queue_capacity_s1 = 
+service_time_mean_s1 = 
+quantum_time_slice_s1 = 
+
+// Server 2
+num_cores_s2 = 
+tot_threads_s2 = 
+queue_capacity_s2 =
+service_time_mean_s2 = 
+quantum_time_slice_s2 =
+
+// System
+routing_probability = 
+
+// Experiment
+runs = 
+user_start = 
+user_end = 
+user_step = 

@@ -1,20 +1,19 @@
 // DONT CHANGE VARIABLE NAMES
 // simulation configuration
-// context switch overhead = 0.0
 
-think_time_mean = 100.0
-think_time_std = 5.0
-timeout = 1000000
+think_time_mean = 
+think_time_std = 
+timeout = 
 
-num_cores = 8
-tot_threads = 128
-queue_capacity = 100000
+num_cores = 
+tot_threads = 
+queue_capacity = 
 
-service_time_mean = 10
-quantum_time_slice = 1
+service_time_mean = 
+quantum_time_slice = 
 
 // experiment settings
-runs = 15
-user_start = 20
-user_end = 200
-user_step = 5
+runs = 
+user_start = 
+user_end = 
+user_step = 

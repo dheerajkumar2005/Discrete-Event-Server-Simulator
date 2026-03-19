@@ -3,7 +3,7 @@
 priority_queue<Event> event_heap;
 vector<Request> requests;
 int global_request_counter = 0;
-int MAX_REQUESTS = 15000;
+int MAX_REQUESTS = 30000;
 int CONTEXT_SWITCH_OVERHEAD = 0.5;
 int completed_requests = 0;
 double current_time = 0;
@@ -188,7 +188,8 @@ void Server::assign_thread() {
         Request &req = requests[req_id];
         free_threads--;
         req.thread_assigned_time = current_time;
-        req.total_service_time = exponential_sample(mean_service_time);
+        // req.total_service_time = exponential_sample(mean_service_time);
+        req.total_service_time = gaussian_sample(mean_service_time, 0);
         req.service_time_completed = 0;
         thread_queue.push(req_id);
     }

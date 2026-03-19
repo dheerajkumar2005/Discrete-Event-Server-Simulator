@@ -1,5 +1,7 @@
 #include "simulator.hh"
 #include <fstream>
+#include <random>
+#include <chrono>
 
 double compute_avg_response_time() {
 
@@ -71,7 +73,7 @@ void simulate(Config &config) {
     }
 
     //main simulation loop;
-    while (!event_heap.empty() && completed_requests < MAX_REQUESTS) {   //decide a better stopping criterion;
+    while (!event_heap.empty() && completed_requests < MAX_REQUESTS) {   
 
         Event ev = event_heap.top();
         event_heap.pop();
@@ -184,6 +186,7 @@ void load_config(string filename, Config &config, int &RUNS, int &user_start, in
 
 int main() {
 
+    // generator.seed(std::chrono::system_clock::now().time_since_epoch().count()); // for generating different seeds
     Config config;
     int RUNS;
     int user_start, user_end, user_step;
@@ -238,9 +241,4 @@ int main() {
 
     outfile.close();
 }
-
-    // cout << "Simulation Finished\n";
-    // cout << "Completed Requests: " << completed_requests << endl;
-    // cout << "Total Requests Generated: " << global_request_counter << endl;
-    // cout << "Average Response Time : " << compute_avg_response_time() << endl;
 

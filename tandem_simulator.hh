@@ -1,3 +1,4 @@
+#pragma once
 #include <bits/stdc++.h>
 using namespace std;
 
@@ -42,8 +43,6 @@ struct Metrics {
     double avg_num_system;
     double avg_queue1_length;
     double avg_queue2_length;
-    
-    Metrics();
 };
 
 struct Request {
@@ -52,17 +51,15 @@ struct Request {
     bool timed_out;
     bool dropped;
     int current_server;
-    
-    // timestamps
+
     double issue_time;
     double thread_assigned_time;
     double completion_time;
-    
-    // service parameters
+
     double total_service_time;
     double service_time_completed;
     double timeout_time;
-    
+
     Request(int r_id, int u_id, double issue, int cur_ser = 0);
 };
 
@@ -72,14 +69,14 @@ struct Event {
     int request_id;
     int core_id;
     int server_id;
-    
-    Event(double t, int type, int req = -1, int core = -1, int server_id = 0) ;
+
+    Event(double t, int type, int req = -1, int core = -1, int server_id = 0);
     bool operator<(const Event& other) const;
 };
 
-//global variables;
+// globals
 extern priority_queue<Event> event_heap;
-extern vector<Request> requests;          // store all requests for further statistics calculation;
+extern vector<Request> requests;
 extern int global_request_counter;
 extern int MAX_REQUESTS;
 extern int completed_requests;
@@ -99,42 +96,44 @@ extern double area_queue1_length;
 extern double area_queue2_length;
 extern default_random_engine generator;
 
-//distribution functions;
+// distributions
 double gaussian_sample(double mean, double stddev);
 double exponential_sample(double mean);
 
 class User {
-    public :
+public:
     int user_id;
     double think_time_mean;
     double think_time_std;
     double timeout;
-    
+
     User(int uid, double think_mean, double think_std, double t);
     void issue_req();
-    void handle_reply(int req_id) ;
+    void handle_reply(int req_id);
     void handle_timeout(int req_id);
 };
 
 class Server {
-    public :
+public:
     int n_cores;
     int tot_threads;
     int free_threads;
     int queue_capacity;
     double mean_service_time;
     double time_slice;
-    
+
     queue<int> req_queue;
     queue<int> thread_queue;
     vector<int> core_status;
-    
+
     Server(int cores, int threads, int q_cap, double service_mean, double slice);
-    void assign_core();                                         // assigns cores to the threads in the front of the thread queue;
-    void handle_arrival(int req_id);                            
-    void assign_thread();                                      // assigns a thread to the request in the front of the quue and pushes it to the therad queue;
+    void assign_core();
+    void handle_arrival(int req_id);
+    void assign_thread();
     void handle_context_switch(int req_id, int core_id);
     void handle_departure(int req_id, int core_id);
 };
 
 int num_in_system(Server &server);
+void simulate(Config &config);
+void reset();

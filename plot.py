@@ -28,7 +28,6 @@ util = data["utilization"]
 drop_rate = data["drop_rate"]
 
 avg_num_system = data["avg_num_system"]
-
 error = [mean_rt - lower_ci, upper_ci - mean_rt]
 
 
@@ -36,9 +35,9 @@ error = [mean_rt - lower_ci, upper_ci - mean_rt]
 # Mean Value Analysis
 # -----------------------------
 
-Z = 100.0          # think time
-S = 10.0          # mean service time
-m = 8          # number of servers
+Z = 5.0          # think time
+S = 0.05          # mean service time
+m = 1            # number of servers
 
 max_users = int(users.max())
 
@@ -65,7 +64,8 @@ for n in range(1, max_users + 1):
 R_mva_plot = [R_mva[int(n)] for n in users]
 X_mva_plot = [X_mva[int(n)] for n in users]
 Q_mva_plot = [N_mva[int(n)] for n in users]
-
+U_mva = (X_mva * S) / m
+U_mva_plot = [U_mva[int(n)] for n in users]
 
 # -----------------------------
 # Response Time plot
@@ -94,6 +94,7 @@ plt.plot(
     label="MVA Prediction"
 )
 
+
 plt.xlabel("Number of Users")
 plt.ylabel("Average Response Time")
 plt.title("Response Time vs Users")
@@ -101,6 +102,25 @@ plt.grid(True)
 plt.legend()
 
 plt.savefig(os.path.join(output_dir, "response_time_vs_users.png"))
+plt.close()
+
+# -----------------------------
+# Throughput plot
+# -----------------------------
+
+plt.figure()
+
+plt.plot(users, throughput, label="Simulation")
+plt.plot(users, X_mva_plot, label="MVA")
+
+
+plt.xlabel("Number of Users")
+plt.ylabel("Throughput")
+plt.title("Throughput vs Users")
+plt.grid(True)
+plt.legend()
+
+plt.savefig(os.path.join(output_dir, "throughput_vs_users.png"))
 plt.close()
 
 
@@ -119,6 +139,14 @@ plt.plot(
     label="Simulation"
 )
 
+# MVA (dashed + no markers)
+plt.plot(
+    users,
+    Q_mva_plot,
+    linestyle='--',
+    linewidth=2,
+    label="MVA"
+)
 
 # Little’s Law (dash-dot + different marker)
 plt.plot(
@@ -147,9 +175,9 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, throughput, marker='o', label="Throughput")
-plt.plot(users, goodput, marker='s', label="Goodput")
-plt.plot(users, badput, marker='^', label="Badput")
+plt.plot(users, throughput, label="Throughput")
+plt.plot(users, goodput, label="Goodput")
+plt.plot(users, badput, label="Badput")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Rate")
@@ -167,12 +195,24 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, util, marker='o')
+# Simulation
+plt.plot(users, util, marker='o', label="Simulation")
+
+
+# 🔥 MVA Utilization
+plt.plot(
+    users,
+    U_mva_plot,
+    linestyle='--',
+    linewidth=2,
+    label="MVA"
+)
 
 plt.xlabel("Number of Users")
 plt.ylabel("Core Utilization")
 plt.title("Utilization vs Users")
 plt.grid(True)
+plt.legend()
 
 plt.savefig(os.path.join(output_dir, "utilization_vs_users.png"))
 plt.close()

@@ -82,7 +82,7 @@ extern double total_core_busy_time;
 extern int measured_arrivals;
 extern int dropped_requests;
 extern double last_event_time;
-extern double area_num_system;
+extern double area_num_system;   // averge number in system and queue length is calulated as integral Ndt / T
 extern double area_queue_length;
 extern default_random_engine generator;
 
