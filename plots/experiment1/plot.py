@@ -28,7 +28,9 @@ util = data["utilization"]
 drop_rate = data["drop_rate"]
 
 avg_num_system = data["avg_num_system"]
-
+measured_rt = data["measured_resp_time"]
+measured_throughput = data["measured_throughput"]
+measured_util = data["measured_util"]
 error = [mean_rt - lower_ci, upper_ci - mean_rt]
 
 
@@ -38,7 +40,7 @@ error = [mean_rt - lower_ci, upper_ci - mean_rt]
 
 Z = 5.0          # think time
 S = 0.05          # mean service time
-m = 1          # number of servers
+m = 1            # number of servers
 
 max_users = int(users.max())
 
@@ -65,7 +67,8 @@ for n in range(1, max_users + 1):
 R_mva_plot = [R_mva[int(n)] for n in users]
 X_mva_plot = [X_mva[int(n)] for n in users]
 Q_mva_plot = [N_mva[int(n)] for n in users]
-
+U_mva = (X_mva * S) / m
+U_mva_plot = [U_mva[int(n)] for n in users]
 
 # -----------------------------
 # Response Time plot
@@ -94,6 +97,14 @@ plt.plot(
     label="MVA Prediction"
 )
 
+plt.plot(
+    users,
+    measured_rt,
+    linestyle='-.',
+    linewidth=2,
+    label="Measured"
+)
+
 plt.xlabel("Number of Users")
 plt.ylabel("Average Response Time")
 plt.title("Response Time vs Users")
@@ -109,8 +120,16 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, throughput, marker='o', label="Simulation")
-plt.plot(users, X_mva_plot, marker='s', label="MVA")
+plt.plot(users, throughput, label="Simulation")
+plt.plot(users, X_mva_plot, label="MVA")
+
+plt.plot(
+    users,
+    measured_throughput,
+    linestyle='-.',
+    linewidth=2,
+    label="Measured"
+)
 
 plt.xlabel("Number of Users")
 plt.ylabel("Throughput")
@@ -125,11 +144,37 @@ plt.close()
 # -----------------------------
 # Number in System
 # -----------------------------
-
+N_little = throughput * mean_rt
 plt.figure()
 
-plt.plot(users, avg_num_system, marker='o', label="Simulation")
-plt.plot(users, Q_mva_plot, marker='s', label="MVA")
+plt.plot(
+    users,
+    avg_num_system,
+    marker='o',
+    markersize=4,
+    linewidth=2.5,
+    label="Simulation"
+)
+
+# MVA (dashed + no markers)
+plt.plot(
+    users,
+    Q_mva_plot,
+    linestyle='--',
+    linewidth=2,
+    label="MVA"
+)
+
+# Little’s Law (dash-dot + different marker)
+plt.plot(
+    users,
+    N_little,
+    linestyle='-.',
+    marker='x',
+    markersize=4,
+    linewidth=2,
+    label="Little's Law (X·R)"
+)
 
 plt.xlabel("Number of Users")
 plt.ylabel("Average Number in System")
@@ -147,9 +192,9 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, throughput, marker='o', label="Throughput")
-plt.plot(users, goodput, marker='s', label="Goodput")
-plt.plot(users, badput, marker='^', label="Badput")
+plt.plot(users, throughput, label="Throughput")
+plt.plot(users, goodput, label="Goodput")
+plt.plot(users, badput, label="Badput")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Rate")
@@ -167,12 +212,32 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, util, marker='o')
+# Simulation
+plt.plot(users, util, marker='o', label="Simulation")
+
+# 🔥 Measured
+plt.plot(
+    users,
+    measured_util,
+    linestyle='-.',
+    linewidth=2,
+    label="Measured"
+)
+
+# 🔥 MVA Utilization
+plt.plot(
+    users,
+    U_mva_plot,
+    linestyle='--',
+    linewidth=2,
+    label="MVA"
+)
 
 plt.xlabel("Number of Users")
 plt.ylabel("Core Utilization")
 plt.title("Utilization vs Users")
 plt.grid(True)
+plt.legend()
 
 plt.savefig(os.path.join(output_dir, "utilization_vs_users.png"))
 plt.close()
@@ -192,4 +257,22 @@ plt.title("Drop Rate vs Users")
 plt.grid(True)
 
 plt.savefig(os.path.join(output_dir, "drop_rate_vs_users.png"))
+plt.close()
+
+# -----------------------------
+# Average Queue Length
+# -----------------------------
+
+avg_qlen = data["avg_queue_length"]
+
+plt.figure()
+
+plt.plot(users, avg_qlen, marker='o')
+
+plt.xlabel("Number of Users")
+plt.ylabel("Average Queue Length")
+plt.title("Average Queue Length vs Users")
+plt.grid(True)
+
+plt.savefig(os.path.join(output_dir, "avg_queue_length_vs_users.png"))
 plt.close()

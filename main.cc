@@ -221,7 +221,7 @@ int main() {
 
         double m = mean(samples);
         double sd = stddev(samples, m);
-        double ci = 2.327* sd / sqrt(RUNS);  // 99.999% confidence interval
+        double ci = 2.576* sd / sqrt(RUNS);  // 99% confidence interval
         double lower = m - ci;
         double upper = m + ci;
 

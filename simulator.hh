@@ -70,6 +70,7 @@ extern priority_queue<Event> event_heap;
 extern vector<Request> requests;          // store all requests for further statistics calculation;
 extern int global_request_counter;
 extern int MAX_REQUESTS;
+extern int CONTEXT_SWITCH_OVERHEAD;
 extern int completed_requests;
 extern double current_time;
 extern int WARMUP_REQUESTS;

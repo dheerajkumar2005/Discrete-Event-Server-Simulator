@@ -13,14 +13,22 @@ struct Config {
     double think_time_mean;
     double think_time_std;
     double timeout;
-    int num_cores;
-    int tot_threads;
-    int queue_capacity;
-    double service_time_mean;
-    double quantum_time_slice;
+
+    // Server 1
+    int num_cores_s1;
+    int tot_threads_s1;
+    int queue_capacity_s1;
+    double service_time_mean_s1;
+    double quantum_time_slice_s1;
+
+    // Server 2
+    int num_cores_s2;
+    int tot_threads_s2;
+    int queue_capacity_s2;
+    double service_time_mean_s2;
+    double quantum_time_slice_s2;
+
     double routing_prob;
-    
-    Config();
 };
 
 struct Metrics {

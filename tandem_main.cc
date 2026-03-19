@@ -38,8 +38,8 @@ Metrics compute_metrics(Config &config) {
     m.throughput = measured_completions / measurement_time;
     m.goodput = good_completions / measurement_time;
     m.badput = bad_completions / measurement_time;
-    m.util1 = total_core_busy_time_s1 / (config.num_cores * measurement_time);
-    m.util2 = total_core_busy_time_s2 / (config.num_cores * measurement_time);
+    m.util1 = total_core_busy_time_s1 / (config.num_cores_s1 * measurement_time);
+    m.util2 = total_core_busy_time_s2 / (config.num_cores_s2 * measurement_time);
     m.drop_rate = (double)dropped_reqests / measured_arrivals;
     m.avg_num_system = area_num_system / measurement_time;
     m.avg_queue1_length = area_queue1_length / measurement_time;
@@ -65,8 +65,21 @@ void simulate(Config &config) {
         users.push_back(u); 
     }
 
-    Server server1(NCORES, TOT_THREADS, QUEUE_CAP, SERVICE_TIME_MEAN, TIME_SLICE);
-    Server server2(NCORES, TOT_THREADS, QUEUE_CAP, SERVICE_TIME_MEAN, TIME_SLICE);
+    Server server1(
+        config.num_cores_s1,
+        config.tot_threads_s1,
+        config.queue_capacity_s1,
+        config.service_time_mean_s1,
+        config.quantum_time_slice_s1
+    );
+
+    Server server2(
+        config.num_cores_s2,
+        config.tot_threads_s2,
+        config.queue_capacity_s2,
+        config.service_time_mean_s2,
+        config.quantum_time_slice_s2
+    );
 
     //send initial requests;
     for (auto &u : users) {
@@ -235,15 +248,21 @@ void load_config(string filename, Config &config, int &RUNS, int &user_start, in
         if (key == "think_time_mean") config.think_time_mean = val;
         else if (key == "think_time_std") config.think_time_std = val;
         else if (key == "timeout") config.timeout = val;
-        else if (key == "num_cores") config.num_cores = val;
-        else if (key == "tot_threads") config.tot_threads = val;
-        else if (key == "queue_capacity") config.queue_capacity = val;
-        else if (key == "service_time_mean") config.service_time_mean = val;
-        else if (key == "quantum_time_slice") config.quantum_time_slice = val;
-        else if (key == "runs") RUNS = val;
-        else if (key == "user_start") user_start = val;
-        else if (key == "user_end") user_end = val;
-        else if (key == "user_step") user_step = val;
+
+        // Server 1
+        else if (key == "num_cores_s1") config.num_cores_s1 = val;
+        else if (key == "tot_threads_s1") config.tot_threads_s1 = val;
+        else if (key == "queue_capacity_s1") config.queue_capacity_s1 = val;
+        else if (key == "service_time_mean_s1") config.service_time_mean_s1 = val;
+        else if (key == "quantum_time_slice_s1") config.quantum_time_slice_s1 = val;
+
+        // Server 2
+        else if (key == "num_cores_s2") config.num_cores_s2 = val;
+        else if (key == "tot_threads_s2") config.tot_threads_s2 = val;
+        else if (key == "queue_capacity_s2") config.queue_capacity_s2 = val;
+        else if (key == "service_time_mean_s2") config.service_time_mean_s2 = val;
+        else if (key == "quantum_time_slice_s2") config.quantum_time_slice_s2 = val;
+
         else if (key == "routing_probability") config.routing_prob = val;
     }
 }

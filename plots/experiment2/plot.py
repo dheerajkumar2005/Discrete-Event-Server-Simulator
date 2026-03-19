@@ -37,8 +37,8 @@ error = [mean_rt - lower_ci, upper_ci - mean_rt]
 # -----------------------------
 
 Z = 5.0          # think time
-S = 0.5          # mean service time
-m = 8          # number of servers
+S = 0.05          # mean service time
+m = 1          # number of servers
 
 max_users = int(users.max())
 
@@ -48,15 +48,13 @@ N_mva = np.zeros(max_users + 1)
 
 for n in range(1, max_users + 1):
 
-    Q = N_mva[n-1]
+    # multi-server residence time approximation
+    R = S * (1 + N_mva[n-1]/m)
 
-    # Correct multi-server approximation
-    if Q < m:
-        R = S
-    else:
-        R = S * (1 + (Q - m) / m)
-
+    # throughput
     X = n / (Z + R)
+
+    # number in system
     N = X * R
 
     R_mva[n] = R
@@ -127,11 +125,37 @@ plt.close()
 # -----------------------------
 # Number in System
 # -----------------------------
-
+N_little = throughput * mean_rt
 plt.figure()
 
-plt.plot(users, avg_num_system, marker='o', label="Simulation")
-plt.plot(users, Q_mva_plot, marker='s', label="MVA")
+plt.plot(
+    users,
+    avg_num_system,
+    marker='o',
+    markersize=4,
+    linewidth=2.5,
+    label="Simulation"
+)
+
+# MVA (dashed + no markers)
+plt.plot(
+    users,
+    Q_mva_plot,
+    linestyle='--',
+    linewidth=2,
+    label="MVA"
+)
+
+# Little’s Law (dash-dot + different marker)
+plt.plot(
+    users,
+    N_little,
+    linestyle='-.',
+    marker='x',
+    markersize=4,
+    linewidth=2,
+    label="Little's Law (X·R)"
+)
 
 plt.xlabel("Number of Users")
 plt.ylabel("Average Number in System")
@@ -194,4 +218,22 @@ plt.title("Drop Rate vs Users")
 plt.grid(True)
 
 plt.savefig(os.path.join(output_dir, "drop_rate_vs_users.png"))
+plt.close()
+
+# -----------------------------
+# Average Queue Length
+# -----------------------------
+
+avg_qlen = data["avg_queue_length"]
+
+plt.figure()
+
+plt.plot(users, avg_qlen, marker='o')
+
+plt.xlabel("Number of Users")
+plt.ylabel("Average Queue Length")
+plt.title("Average Queue Length vs Users")
+plt.grid(True)
+
+plt.savefig(os.path.join(output_dir, "avg_queue_length_vs_users.png"))
 plt.close()

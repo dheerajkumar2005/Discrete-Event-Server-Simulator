@@ -36,9 +36,9 @@ error = [mean_rt - lower_ci, upper_ci - mean_rt]
 # Mean Value Analysis
 # -----------------------------
 
-Z = 5.0          # think time
-S = 0.05          # mean service time
-m = 1            # number of servers
+Z = 100.0          # think time
+S = 10.0          # mean service time
+m = 8          # number of servers
 
 max_users = int(users.max())
 
@@ -103,33 +103,33 @@ plt.legend()
 plt.savefig(os.path.join(output_dir, "response_time_vs_users.png"))
 plt.close()
 
-# -----------------------------
-# Throughput plot
-# -----------------------------
-
-plt.figure()
-
-plt.plot(users, throughput, label="Simulation")
-plt.plot(users, X_mva_plot, label="MVA")
-
-plt.xlabel("Number of Users")
-plt.ylabel("Throughput")
-plt.title("Throughput vs Users")
-plt.grid(True)
-plt.legend()
-
-plt.savefig(os.path.join(output_dir, "throughput_vs_users.png"))
-plt.close()
-
 
 # -----------------------------
 # Number in System
 # -----------------------------
-
+N_little = throughput * mean_rt
 plt.figure()
 
-plt.plot(users, avg_num_system, label="Simulation")
-plt.plot(users, Q_mva_plot, label="MVA")
+plt.plot(
+    users,
+    avg_num_system,
+    marker='o',
+    markersize=4,
+    linewidth=2.5,
+    label="Simulation"
+)
+
+
+# Little’s Law (dash-dot + different marker)
+plt.plot(
+    users,
+    N_little,
+    linestyle='-.',
+    marker='x',
+    markersize=4,
+    linewidth=2,
+    label="Little's Law (X·R)"
+)
 
 plt.xlabel("Number of Users")
 plt.ylabel("Average Number in System")
@@ -147,9 +147,9 @@ plt.close()
 
 plt.figure()
 
-plt.plot(users, throughput, label="Throughput")
-plt.plot(users, goodput, label="Goodput")
-plt.plot(users, badput, label="Badput")
+plt.plot(users, throughput, marker='o', label="Throughput")
+plt.plot(users, goodput, marker='s', label="Goodput")
+plt.plot(users, badput, marker='^', label="Badput")
 
 plt.xlabel("Number of Users")
 plt.ylabel("Rate")

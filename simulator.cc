@@ -4,6 +4,7 @@ priority_queue<Event> event_heap;
 vector<Request> requests;
 int global_request_counter = 0;
 int MAX_REQUESTS = 15000;
+int CONTEXT_SWITCH_OVERHEAD = 0.5;
 int completed_requests = 0;
 double current_time = 0;
 int WARMUP_REQUESTS = 3000;
@@ -146,7 +147,7 @@ void Server::assign_core()  {
         }
         else {
             // push context switch event;
-            event_heap.push(Event(current_time + time_slice, CONTEXT_SWITCH, req_id, i));
+            event_heap.push(Event(current_time + time_slice + CONTEXT_SWITCH_OVERHEAD, CONTEXT_SWITCH, req_id, i));
         }
     }
 }
