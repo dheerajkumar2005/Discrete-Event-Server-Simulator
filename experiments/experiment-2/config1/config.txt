@@ -6,15 +6,15 @@ think_time_mean = 5.0
 think_time_std = 0.5
 timeout = 1000000
 
-num_cores = 3
-tot_threads = 32
-queue_capacity = 200
+num_cores = 2
+tot_threads = 64
+queue_capacity = 30
 
 service_time_mean = 0.05
-quantum_time_slice = 500000
+quantum_time_slice = 10000000
 
 // experiment settings
 runs = 15
-user_start = 30
-user_end = 600
-user_step = 30
+user_start = 20
+user_end = 400
+user_step = 20
