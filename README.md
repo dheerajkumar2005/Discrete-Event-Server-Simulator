@@ -21,29 +21,6 @@ Using a priority-queue event-driven scheduler, the simulator accurately predicts
 
 ## 🏗️ Architecture & Network Topology
 
-```mermaid
-flowchart LR
-    subgraph Closed_Loop["Closed Queueing System"]
-        Users["Active User Population (N)<br/>Stochastic Think Time Z ~ Exp(λ)"]
-        
-        subgraph Server1["Multi-Threaded Server 1"]
-            Queue1["FIFO Request Queue"]
-            Pool1["Finite Thread Pool (k threads)<br/>Service Time S₁ ~ Exp(μ₁)"]
-            Queue1 --> Pool1
-        end
-
-        subgraph Server2["Tandem Server 2 (with Feedback)"]
-            Queue2["Server 2 Queue"]
-            Pool2["Service Time S₂ ~ Exp(μ₂)"]
-            Queue2 --> Pool2
-        end
-    end
-
-    Users --> Queue1
-    Pool1 -->|"Probability 1 - p"| Users
-    Pool1 -->|"Probability p"| Queue2
-    Pool2 -->|"Feedback"| Queue1
-```
 
 ### Core Simulation Capabilities:
 1. **Event Scheduling Engine**: Min-heap priority queue tracking discrete system events (`EVENT_THINK_DONE`, `EVENT_SERVICE_START`, `EVENT_SERVICE_DONE`, `EVENT_TIMEOUT`).
